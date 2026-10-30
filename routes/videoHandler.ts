@@ -4,6 +4,7 @@
  */
 
 import fs from 'node:fs'
+import { basename, resolve, sep } from 'node:path'
 import config from 'config'
 import { type Request, type Response } from 'express'
 import { AllHtmlEntities as Entities } from 'html-entities'
@@ -78,15 +79,33 @@ export const promotionVideo = () => {
 }
 
 function getSubsFromFile () {
+  const videosDir = fs.realpathSync(resolve('frontend/dist/frontend/assets/public/videos'))
   const subtitles = config.get<string>('application.promotion.subtitles') ?? 'owasp_promo.vtt'
-  const data = fs.readFileSync('frontend/dist/frontend/assets/public/videos/' + subtitles, 'utf8')
+  // extractFilename URL-decodes its result, so encoded separators must be stripped afterwards
+  const subtitlesPath = fs.realpathSync(resolve(videosDir, basename(utils.extractFilename(subtitles))))
+  if (!subtitlesPath.startsWith(videosDir + sep)) {
+    throw new Error('Subtitles path must be within the videos directory')
+  }
+  const data = fs.readFileSync(subtitlesPath, 'utf8')
   return data.toString()
 }
 
 function videoPath () {
+  const videosDir = fs.realpathSync(resolve('frontend/dist/frontend/assets/public/videos'))
   if (config.get<string>('application.promotion.video') !== null) {
-    const video = utils.extractFilename(config.get<string>('application.promotion.video'))
-    return 'frontend/dist/frontend/assets/public/videos/' + video
+    // extractFilename URL-decodes its result, so encoded separators must be stripped afterwards
+    const videoPath = resolve(videosDir, basename(utils.extractFilename(config.get<string>('application.promotion.video'))))
+    if (!videoPath.startsWith(videosDir + sep)) {
+      throw new Error('Video path must be within the videos directory')
+    }
+    const video = fs.realpathSync(videoPath)
+    if (video.startsWith(videosDir + sep)) {
+      return video
+    }
   }
-  return 'frontend/dist/frontend/assets/public/videos/owasp_promo.mp4'
+  const defaultVideo = fs.realpathSync(resolve(videosDir, 'owasp_promo.mp4'))
+  if (!defaultVideo.startsWith(videosDir + sep)) {
+    throw new Error('Video path must be within the videos directory')
+  }
+  return defaultVideo
 }

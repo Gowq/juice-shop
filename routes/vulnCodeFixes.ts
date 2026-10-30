@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import yaml from 'js-yaml'
 import { type NextFunction, type Request, type Response } from 'express'
 
@@ -26,7 +27,7 @@ export const readFixes = (key: string) => {
   let correct: number = -1
   for (const file of files) {
     if (file.startsWith(`${key}_`)) {
-      const fix = fs.readFileSync(`${FixesDir}/${file}`).toString()
+      const fix = fs.readFileSync(path.join(FixesDir, path.basename(file))).toString()
       const metadata = file.split('_')
       const number = metadata[1]
       fixes.push(fix)
@@ -55,6 +56,10 @@ interface VerdictRequestBody {
 
 export const serveCodeFixes = () => (req: Request<FixesRequestParams, Record<string, unknown>, Record<string, unknown>>, res: Response, next: NextFunction) => {
   const key = req.params.key
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+    res.status(400).json({ error: 'Invalid challenge key' })
+    return
+  }
   const fixData = readFixes(key)
   if (fixData.fixes.length === 0) {
     res.status(404).json({
@@ -69,6 +74,10 @@ export const serveCodeFixes = () => (req: Request<FixesRequestParams, Record<str
 
 export const checkCorrectFix = () => async (req: Request<Record<string, unknown>, Record<string, unknown>, VerdictRequestBody>, res: Response, next: NextFunction) => {
   const key = req.body.key
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+    res.status(400).json({ error: 'Invalid challenge key' })
+    return
+  }
   const selectedFix = req.body.selectedFix
   const fixData = readFixes(key)
   if (fixData.fixes.length === 0) {
@@ -77,8 +86,9 @@ export const checkCorrectFix = () => async (req: Request<Record<string, unknown>
     })
   } else {
     let explanation
-    if (fs.existsSync('./data/static/codefixes/' + key + '.info.yml')) {
-      const codingChallengeInfos = yaml.load(fs.readFileSync('./data/static/codefixes/' + key + '.info.yml', 'utf8'))
+    const infoFile = fs.readdirSync(FixesDir).find(file => file === `${key}.info.yml`)
+    if (infoFile) {
+      const codingChallengeInfos = yaml.load(fs.readFileSync(path.join(FixesDir, path.basename(infoFile)), 'utf8'))
       const selectedFixInfo = codingChallengeInfos?.fixes.find(({ id }: { id: number }) => id === selectedFix + 1)
       if (selectedFixInfo?.explanation) explanation = res.__(selectedFixInfo.explanation)
     }

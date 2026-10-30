@@ -5,6 +5,7 @@
 
 import packageJson from '../package.json'
 import fs from 'node:fs'
+import path from 'node:path'
 import logger from './logger'
 import config from 'config'
 import download from 'download'
@@ -112,9 +113,15 @@ export const extractFilename = (url: string) => {
 }
 
 export const downloadToFile = async (url: string, dest: string) => {
+  const basePath = path.resolve('frontend/dist/frontend/assets/public')
+  const fullPath = path.resolve(dest)
+  if (!fullPath.startsWith(basePath + path.sep)) {
+    logger.warn('Refused to download ' + url + ' to a destination outside of ' + basePath)
+    return
+  }
   try {
     const data = await download(url)
-    fs.writeFileSync(dest, data)
+    fs.writeFileSync(fullPath, data)
   } catch (err) {
     logger.warn('Failed to download ' + url + ' (' + getErrorMessage(err) + ')')
   }

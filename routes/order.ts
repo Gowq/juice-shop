@@ -39,10 +39,16 @@ export function placeOrder () {
           const email = customer ? customer.data ? customer.data.email : '' : ''
           const orderId = security.hash(email).slice(0, 4) + '-' + utils.randomHexString(16)
           const pdfFile = `order_${orderId}.pdf`
+          const ftpDirectory = path.resolve('ftp')
+          const pdfPath = path.resolve(ftpDirectory, pdfFile)
+          if (!pdfPath.startsWith(ftpDirectory + path.sep)) {
+            next(new Error('Invalid order file path'))
+            return
+          }
           const { default: PDFDocument } = await import('pdfkit')
           const doc = new PDFDocument()
           const date = new Date().toJSON().slice(0, 10)
-          const fileWriter = doc.pipe(fs.createWriteStream(path.join('ftp/', pdfFile)))
+          const fileWriter = doc.pipe(fs.createWriteStream(pdfPath))
 
           fileWriter.on('finish', () => {
             void (async () => {
