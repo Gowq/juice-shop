@@ -259,7 +259,7 @@ export function chat () {
             }
             break
           case 'error':
-            res.write(sseData({ error: `LLM error: ${event.error as string}` }))
+            res.write(sseData({ error: 'LLM stream error' }))
             break
         }
       }
