@@ -4,6 +4,8 @@
  */
 
 import fs from 'node:fs/promises'
+import { randomUUID } from 'node:crypto'
+import path from 'node:path'
 import { type Request, type Response, type NextFunction } from 'express'
 import fileType from 'file-type'
 
@@ -38,7 +40,17 @@ export function profileImageFileUpload () {
       return
     }
 
-    const filePath = `frontend/dist/frontend/assets/public/images/uploads/${loggedInUser.data.id}.${uploadedFileType.ext}`
+    if (!/^[a-z0-9]+$/i.test(uploadedFileType.ext)) {
+      next(new Error('Illegal file type'))
+      return
+    }
+    const filename = `${randomUUID()}.${uploadedFileType.ext}`
+    const uploadsDir = path.resolve('frontend/dist/frontend/assets/public/images/uploads')
+    const filePath = path.resolve(uploadsDir, filename)
+    if (!filePath.startsWith(uploadsDir + path.sep)) {
+      next(new Error('Blocked illegal activity by ' + req.socket.remoteAddress))
+      return
+    }
     try {
       await fs.writeFile(filePath, buffer)
     } catch (err) {
@@ -48,7 +60,7 @@ export function profileImageFileUpload () {
     try {
       const user = await UserModel.findByPk(loggedInUser.data.id)
       if (user != null) {
-        await user.update({ profileImage: `assets/public/images/uploads/${loggedInUser.data.id}.${uploadedFileType.ext}` })
+        await user.update({ profileImage: `assets/public/images/uploads/${filename}` })
       }
     } catch (error) {
       next(error)

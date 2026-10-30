@@ -6,6 +6,7 @@
 import { type NextFunction, type Request, type Response } from 'express'
 import yaml from 'js-yaml'
 import fs from 'node:fs/promises'
+import path from 'node:path'
 
 import { getCodeChallenges } from '../lib/codingChallenges'
 import * as challengeUtils from '../lib/challengeUtils'
@@ -69,6 +70,10 @@ export const getVerdict = (vulnLines: number[], neutralLines: number[], selected
 
 export const checkVulnLines = () => async (req: Request<Record<string, unknown>, Record<string, unknown>, VerdictRequestBody>, res: Response, next: NextFunction) => {
   const key = req.body.key
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+    res.status(400).json({ status: 'error', error: 'Invalid challenge key' })
+    return
+  }
   let snippetData
   try {
     snippetData = await retrieveCodeSnippet(key)
@@ -86,8 +91,14 @@ export const checkVulnLines = () => async (req: Request<Record<string, unknown>,
   const selectedLines: number[] = req.body.selectedLines
   const verdict = getVerdict(vulnLines, neutralLines, selectedLines)
   let hint
-  if (await fs.stat('./data/static/codefixes/' + key + '.info.yml')) {
-    const codingChallengeInfos = yaml.load(await fs.readFile('./data/static/codefixes/' + key + '.info.yml', { encoding: 'utf8' }))
+  const codefixesDirectory = await fs.realpath('./data/static/codefixes')
+  const infoFile = await fs.realpath(path.resolve(codefixesDirectory, key + '.info.yml'))
+  if (path.dirname(infoFile) !== codefixesDirectory) {
+    res.status(400).json({ status: 'error', error: 'Invalid challenge key' })
+    return
+  }
+  if (await fs.stat(infoFile)) {
+    const codingChallengeInfos = yaml.load(await fs.readFile(infoFile, { encoding: 'utf8' }))
     if (codingChallengeInfos?.hints) {
       if (accuracy.getFindItAttempts(key) > codingChallengeInfos.hints.length) {
         if (vulnLines.length === 1) {

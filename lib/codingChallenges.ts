@@ -17,16 +17,24 @@ interface CachedCodeChallenge {
 
 export const findFilesWithCodeChallenges = async (paths: readonly string[]): Promise<FileMatch[]> => {
   const matches = []
+  // Restrict all file processing to the application directory
+  const basePath = await fs.realpath(path.resolve(__dirname, '..'))
   for (const currPath of paths) {
     try {
-      if ((await fs.lstat(currPath)).isDirectory()) {
-        const files = await fs.readdir(currPath)
+      const fullPath = await fs.realpath(path.resolve(currPath))
+      const relativePath = path.relative(basePath, fullPath)
+      if (relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
+        logger.warn(`File ${currPath} is outside of the application directory and will be ignored.`)
+        continue
+      }
+      if ((await fs.lstat(fullPath)).isDirectory()) {
+        const files = await fs.readdir(fullPath)
         const moreMatches = await findFilesWithCodeChallenges(
-          files.map(file => path.resolve(currPath, file))
+          files.map(file => path.resolve(fullPath, file))
         )
         matches.push(...moreMatches)
       } else {
-        const code = await fs.readFile(currPath, 'utf8')
+        const code = await fs.readFile(fullPath, 'utf8')
         if (
           // strings are split so that it doesn't find itself...
           code.includes('// vuln-code' + '-snippet start') ||
@@ -55,12 +63,21 @@ function getCodeChallengesFromFile (file: FileMatch) {
   return challenges.map((challengeKey) => getCodingChallengeFromFileContent(fileContent, challengeKey))
 }
 
+function hasLineMarker (line: string, marker: string, challengeKey: string) {
+  const markerIndex = line.indexOf(marker)
+  return markerIndex !== -1 && line.includes(challengeKey, markerIndex + marker.length)
+}
+
 function getCodingChallengeFromFileContent (source: string, challengeKey: string) {
-  const snippets = source.match(`[/#]{0,2} vuln-code-snippet start.*${challengeKey}([^])*vuln-code-snippet end.*${challengeKey}`)
-  if (snippets == null) {
+  const start = [...source.matchAll(/[/#]{0,2} vuln-code-snippet start.*/g)]
+    .find(match => hasLineMarker(match[0], 'vuln-code-snippet start', challengeKey))
+  const end = [...source.matchAll(/vuln-code-snippet end.*/g)]
+    .filter(match => hasLineMarker(match[0], 'vuln-code-snippet end', challengeKey))
+    .pop()
+  if (start == null || end == null || end.index < start.index + start[0].length) {
     throw new BrokenBoundary('Broken code snippet boundaries for: ' + challengeKey)
   }
-  let snippet = snippets[0] // TODO Currently only a single code snippet is supported
+  let snippet = source.slice(start.index, end.index + end[0].length) // TODO Currently only a single code snippet is supported
   snippet = snippet.replace(/\s?[/#]{0,2} vuln-code-snippet start.*[\r\n]{0,2}/g, '')
   snippet = snippet.replace(/\s?[/#]{0,2} vuln-code-snippet end.*/g, '')
   snippet = snippet.replace(/.*[/#]{0,2} vuln-code-snippet hide-line[\r\n]{0,2}/g, '')
@@ -73,9 +90,9 @@ function getCodingChallengeFromFileContent (source: string, challengeKey: string
   const vulnLines = []
   const neutralLines = []
   for (let i = 0; i < lines.length; i++) {
-    if (new RegExp(`vuln-code-snippet vuln-line.*${challengeKey}`).exec(lines[i]) != null) {
+    if (hasLineMarker(lines[i], 'vuln-code-snippet vuln-line', challengeKey)) {
       vulnLines.push(i + 1)
-    } else if (new RegExp(`vuln-code-snippet neutral-line.*${challengeKey}`).exec(lines[i]) != null) {
+    } else if (hasLineMarker(lines[i], 'vuln-code-snippet neutral-line', challengeKey)) {
       neutralLines.push(i + 1)
     }
   }

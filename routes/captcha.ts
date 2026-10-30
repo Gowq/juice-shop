@@ -19,7 +19,10 @@ export function captchas () {
     const secondOperator = operators[Math.floor((Math.random() * 3))]
 
     const expression = firstTerm.toString() + firstOperator + secondTerm.toString() + secondOperator + thirdTerm.toString()
-    const answer = eval(expression).toString() // eslint-disable-line no-eval
+    const calculate = (left: number, operator: string, right: number) => operator === '*' ? left * right : operator === '+' ? left + right : left - right
+    const answer = (secondOperator === '*' && firstOperator !== '*'
+      ? calculate(firstTerm, firstOperator, secondTerm * thirdTerm)
+      : calculate(calculate(firstTerm, firstOperator, secondTerm), secondOperator, thirdTerm)).toString()
 
     const captcha = {
       captchaId,

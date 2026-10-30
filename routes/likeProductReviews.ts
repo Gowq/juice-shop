@@ -15,7 +15,10 @@ const sleep = async (ms: number) => await new Promise(resolve => setTimeout(reso
 
 export function likeProductReviews () {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const id = req.body.id
+    if (typeof req.body.id !== 'string') {
+      return res.status(400).json({ error: 'Wrong Params' })
+    }
+    const id = String(req.body.id)
     const user = security.authenticatedUsers.from(req)
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' })

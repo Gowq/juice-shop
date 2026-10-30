@@ -67,17 +67,24 @@ module.exports = function (grunt) {
     }
   })
 
-  grunt.registerTask('checksum', 'Create .md5 checksum files', function () {
+  grunt.registerTask('checksum', 'Create .sha256 checksum files', function () {
     const fs = require('node:fs')
     const crypto = require('node:crypto')
-    fs.readdirSync('dist/').forEach(file => {
-      const buffer = fs.readFileSync('dist/' + file)
-      const md5 = crypto.createHash('md5')
-      md5.update(buffer)
-      const md5Hash = md5.digest('hex')
-      const md5FileName = 'dist/' + file + '.md5'
-      grunt.file.write(md5FileName, md5Hash)
-      grunt.log.write(`Checksum ${md5Hash} written to file ${md5FileName}.`).verbose.write('...').ok()
+    const path = require('node:path')
+    const distPath = path.resolve('dist')
+    fs.readdirSync(distPath).forEach(file => {
+      const filePath = path.normalize(path.join(distPath, file))
+      if (!filePath.startsWith(distPath + path.sep)) {
+        grunt.fail.warn(`Invalid path specified: ${file}`)
+        return
+      }
+      const buffer = fs.readFileSync(filePath)
+      const sha256 = crypto.createHash('sha256')
+      sha256.update(buffer)
+      const sha256Hash = sha256.digest('hex')
+      const sha256FileName = filePath + '.sha256'
+      grunt.file.write(sha256FileName, sha256Hash)
+      grunt.log.write(`Checksum ${sha256Hash} written to file ${sha256FileName}.`).verbose.write('...').ok()
       grunt.log.writeln()
     })
   })
