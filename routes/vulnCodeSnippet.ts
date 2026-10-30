@@ -91,7 +91,12 @@ export const checkVulnLines = () => async (req: Request<Record<string, unknown>,
   const selectedLines: number[] = req.body.selectedLines
   const verdict = getVerdict(vulnLines, neutralLines, selectedLines)
   let hint
-  const infoFile = './data/static/codefixes/' + path.basename(key) + '.info.yml'
+  const codefixesDirectory = path.resolve('./data/static/codefixes')
+  const infoFile = path.resolve(codefixesDirectory, key + '.info.yml')
+  if (path.dirname(infoFile) !== codefixesDirectory) {
+    res.status(400).json({ status: 'error', error: 'Invalid challenge key' })
+    return
+  }
   if (await fs.stat(infoFile)) {
     const codingChallengeInfos = yaml.load(await fs.readFile(infoFile, { encoding: 'utf8' }))
     if (codingChallengeInfos?.hints) {
