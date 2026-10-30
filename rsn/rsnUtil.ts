@@ -132,9 +132,14 @@ function findChangedFiles (current: CacheData, cached: CacheData): string[] {
 }
 
 function resolveFixPath (fileName: string): string | null {
-  const basePath = path.resolve(fixesPath)
-  const fullPath = path.resolve(basePath, fileName)
-  return fullPath.startsWith(basePath + path.sep) ? fullPath : null
+  if (!fileName || fileName === '.' || fileName === '..' || /[/\\\0]/.test(fileName)) return null
+  try {
+    const basePath = fs.realpathSync(fixesPath)
+    const fullPath = fs.realpathSync(path.resolve(basePath, fileName))
+    return fullPath.startsWith(basePath + path.sep) ? fullPath : null
+  } catch {
+    return null
+  }
 }
 
 function loadChallengeInfo (challengeName: string): ChallengeInfo | null {
