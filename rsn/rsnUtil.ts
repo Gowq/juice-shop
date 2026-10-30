@@ -62,9 +62,11 @@ const computeDiffs = async (keys: string[]) => {
   }, {})
   for (const val of keys) {
     try {
+      const filePath = resolveFixPath(val)
+      if (!filePath) continue
       const snippet = await retrieveCodeSnippet(val.split('_')[0])
       if (snippet == null) continue
-      const fileData = fs.readFileSync(fixesPath + '/' + val).toString()
+      const fileData = fs.readFileSync(filePath).toString()
       const diff = diffLines(filterString(fileData), filterString(snippet.snippet))
       let line = 0
       for (const part of diff) {
