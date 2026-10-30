@@ -23,6 +23,7 @@ export function profileImageUrlUpload () {
             throw new Error('Profile image URL must use HTTP or HTTPS')
           }
           const user = await UserModel.findByPk(loggedInUser.data.id)
+          // Keep remote images as URLs so user input never becomes a filesystem path.
           await user?.update({ profileImage: imageUrl.href })
         } catch (error) {
           next(error)
