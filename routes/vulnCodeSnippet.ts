@@ -91,8 +91,8 @@ export const checkVulnLines = () => async (req: Request<Record<string, unknown>,
   const selectedLines: number[] = req.body.selectedLines
   const verdict = getVerdict(vulnLines, neutralLines, selectedLines)
   let hint
-  const codefixesDirectory = path.resolve('./data/static/codefixes')
-  const infoFile = path.resolve(codefixesDirectory, key + '.info.yml')
+  const codefixesDirectory = await fs.realpath('./data/static/codefixes')
+  const infoFile = await fs.realpath(path.resolve(codefixesDirectory, key + '.info.yml'))
   if (path.dirname(infoFile) !== codefixesDirectory) {
     res.status(400).json({ status: 'error', error: 'Invalid challenge key' })
     return
