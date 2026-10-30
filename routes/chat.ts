@@ -36,6 +36,12 @@ export function summarizeLlmError (error: unknown): string {
   return msg.split('\n')[0].replace(/:$/, '')
 }
 
+// Encodes HTML-significant characters as JSON unicode escapes, so clients get the original values back from JSON.parse
+function sseData (payload: unknown): string {
+  const json = JSON.stringify(payload).replace(/[<>&]/g, char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`)
+  return `data: ${json}\n\n`
+}
+
 const botName = config.get<string>('application.chatBot.name')
 const appName = config.get<string>('application.name')
 
@@ -215,7 +221,7 @@ export function chat () {
       for await (const event of result.fullStream) {
         switch (event.type) {
           case 'text-delta':
-            res.write(`data: ${JSON.stringify({ choices: [{ delta: { content: event.text } }] })}\n\n`)
+            res.write(sseData({ choices: [{ delta: { content: event.text } }] }))
             break
           case 'tool-call':
             challengeUtils.solveIf(challenges.aiDebuggingChallenge, () => {
@@ -225,7 +231,7 @@ export function chat () {
               return req.cookies.show_tool_calls === 'true' && role !== roles.admin
             })
             metricToolCalls.labels({ tool: event.toolName }).inc()
-            res.write(`data: ${JSON.stringify({
+            res.write(sseData({
               choices: [{
                 delta: {
                   tool_calls: [{
@@ -235,7 +241,7 @@ export function chat () {
                   }]
                 }
               }]
-            })}\n\n`)
+            }))
             break
           case 'finish':
             res.write(`data: ${JSON.stringify({ choices: [{ finish_reason: event.finishReason }] })}\n\n`)
@@ -252,7 +258,7 @@ export function chat () {
             }
             break
           case 'error':
-            res.write(`data: ${JSON.stringify({ error: `LLM error: ${event.error as string}` })}\n\n`)
+            res.write(sseData({ error: `LLM error: ${event.error as string}` }))
             break
         }
       }
