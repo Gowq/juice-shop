@@ -85,13 +85,17 @@ function getSubsFromFile () {
 }
 
 function videoPath () {
-  const videosDir = resolve('frontend/dist/frontend/assets/public/videos')
+  const videosDir = fs.realpathSync(resolve('frontend/dist/frontend/assets/public/videos'))
   if (config.get<string>('application.promotion.video') !== null) {
     // extractFilename URL-decodes its result, so encoded separators must be stripped afterwards
-    const video = resolve(videosDir, basename(utils.extractFilename(config.get<string>('application.promotion.video'))))
+    const video = fs.realpathSync(resolve(videosDir, basename(utils.extractFilename(config.get<string>('application.promotion.video')))))
     if (video.startsWith(videosDir + sep)) {
       return video
     }
   }
-  return resolve(videosDir, 'owasp_promo.mp4')
+  const defaultVideo = fs.realpathSync(resolve(videosDir, 'owasp_promo.mp4'))
+  if (!defaultVideo.startsWith(videosDir + sep)) {
+    throw new Error('Video path must be within the videos directory')
+  }
+  return defaultVideo
 }
