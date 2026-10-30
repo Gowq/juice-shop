@@ -17,16 +17,23 @@ interface CachedCodeChallenge {
 
 export const findFilesWithCodeChallenges = async (paths: readonly string[]): Promise<FileMatch[]> => {
   const matches = []
+  // Restrict all file processing to the application directory
+  const basePath = path.join(path.resolve('.'), path.sep)
   for (const currPath of paths) {
+    const fullPath = path.resolve(currPath)
+    if (!fullPath.startsWith(basePath)) {
+      logger.warn(`File ${currPath} is outside of the application directory and will be ignored.`)
+      continue
+    }
     try {
-      if ((await fs.lstat(currPath)).isDirectory()) {
-        const files = await fs.readdir(currPath)
+      if ((await fs.lstat(fullPath)).isDirectory()) {
+        const files = await fs.readdir(fullPath)
         const moreMatches = await findFilesWithCodeChallenges(
-          files.map(file => path.resolve(currPath, file))
+          files.map(file => path.resolve(fullPath, file))
         )
         matches.push(...moreMatches)
       } else {
-        const code = await fs.readFile(currPath, 'utf8')
+        const code = await fs.readFile(fullPath, 'utf8')
         if (
           // strings are split so that it doesn't find itself...
           code.includes('// vuln-code' + '-snippet start') ||
