@@ -15,6 +15,9 @@ export function profileImageUrlUpload () {
       const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
       if (loggedInUser) {
         try {
+          if (typeof url !== 'string') {
+            throw new Error('Profile image URL must be a string')
+          }
           const imageUrl = new URL(url)
           if (!['http:', 'https:'].includes(imageUrl.protocol)) {
             throw new Error('Profile image URL must use HTTP or HTTPS')
