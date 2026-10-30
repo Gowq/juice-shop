@@ -18,11 +18,12 @@ interface CachedCodeChallenge {
 export const findFilesWithCodeChallenges = async (paths: readonly string[]): Promise<FileMatch[]> => {
   const matches = []
   // Restrict all file processing to the application directory
-  const basePath = path.join(await fs.realpath('.'), path.sep)
+  const basePath = await fs.realpath(path.resolve(__dirname, '..'))
   for (const currPath of paths) {
     try {
       const fullPath = await fs.realpath(path.resolve(currPath))
-      if (!fullPath.startsWith(basePath)) {
+      const relativePath = path.relative(basePath, fullPath)
+      if (relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) {
         logger.warn(`File ${currPath} is outside of the application directory and will be ignored.`)
         continue
       }
