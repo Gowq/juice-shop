@@ -198,6 +198,7 @@ export function chat () {
     const userName = await getUserNameFromToken(req)
 
     res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('Cache-Control', 'no-cache, no-transform')
     res.setHeader('Connection', 'keep-alive')
     res.setHeader('Content-Encoding', 'identity')
