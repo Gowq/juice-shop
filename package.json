@@ -156,7 +156,7 @@
     "unzipper": "^0.12.3",
     "winston": "^3.16.0",
     "z85": "^0.0.2",
-    "zod": "^4.4.3"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@cyclonedx/cyclonedx-npm": "^6.0.0",
