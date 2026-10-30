@@ -244,7 +244,7 @@ export function chat () {
             }))
             break
           case 'finish':
-            res.write(`data: ${JSON.stringify({ choices: [{ finish_reason: event.finishReason }] })}\n\n`)
+            res.write(sseData({ choices: [{ finish_reason: event.finishReason }] }))
             if (event.totalUsage.inputTokens) {
               metricInputTokensTotal.inc(event.totalUsage.inputTokens)
               metricInputTokens.labels({ type: 'cache_read' }).inc(event.totalUsage.inputTokenDetails?.cacheReadTokens ?? 0)
