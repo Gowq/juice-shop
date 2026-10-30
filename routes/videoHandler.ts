@@ -79,8 +79,14 @@ export const promotionVideo = () => {
 }
 
 function getSubsFromFile () {
+  const videosDir = fs.realpathSync(resolve('frontend/dist/frontend/assets/public/videos'))
   const subtitles = config.get<string>('application.promotion.subtitles') ?? 'owasp_promo.vtt'
-  const data = fs.readFileSync('frontend/dist/frontend/assets/public/videos/' + subtitles, 'utf8')
+  // extractFilename URL-decodes its result, so encoded separators must be stripped afterwards
+  const subtitlesPath = fs.realpathSync(resolve(videosDir, basename(utils.extractFilename(subtitles))))
+  if (!subtitlesPath.startsWith(videosDir + sep)) {
+    throw new Error('Subtitles path must be within the videos directory')
+  }
+  const data = fs.readFileSync(subtitlesPath, 'utf8')
   return data.toString()
 }
 
