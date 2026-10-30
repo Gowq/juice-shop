@@ -88,7 +88,11 @@ function videoPath () {
   const videosDir = fs.realpathSync(resolve('frontend/dist/frontend/assets/public/videos'))
   if (config.get<string>('application.promotion.video') !== null) {
     // extractFilename URL-decodes its result, so encoded separators must be stripped afterwards
-    const video = fs.realpathSync(resolve(videosDir, basename(utils.extractFilename(config.get<string>('application.promotion.video')))))
+    const videoPath = resolve(videosDir, basename(utils.extractFilename(config.get<string>('application.promotion.video'))))
+    if (!videoPath.startsWith(videosDir + sep)) {
+      throw new Error('Video path must be within the videos directory')
+    }
+    const video = fs.realpathSync(videoPath)
     if (video.startsWith(videosDir + sep)) {
       return video
     }
