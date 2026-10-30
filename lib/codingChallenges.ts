@@ -68,12 +68,15 @@ function hasLineMarker (line: string, marker: string, challengeKey: string) {
 }
 
 function getCodingChallengeFromFileContent (source: string, challengeKey: string) {
-  const escapedKey = challengeKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const snippets = source.match(`[/#]{0,2} vuln-code-snippet start.*${escapedKey}([^])*vuln-code-snippet end.*${escapedKey}`)
-  if (snippets == null) {
+  const start = [...source.matchAll(/[/#]{0,2} vuln-code-snippet start.*/g)]
+    .find(match => hasLineMarker(match[0], 'vuln-code-snippet start', challengeKey))
+  const end = [...source.matchAll(/vuln-code-snippet end.*/g)]
+    .filter(match => hasLineMarker(match[0], 'vuln-code-snippet end', challengeKey))
+    .pop()
+  if (start == null || end == null || end.index < start.index + start[0].length) {
     throw new BrokenBoundary('Broken code snippet boundaries for: ' + challengeKey)
   }
-  let snippet = snippets[0] // TODO Currently only a single code snippet is supported
+  let snippet = source.slice(start.index, end.index + end[0].length) // TODO Currently only a single code snippet is supported
   snippet = snippet.replace(/\s?[/#]{0,2} vuln-code-snippet start.*[\r\n]{0,2}/g, '')
   snippet = snippet.replace(/\s?[/#]{0,2} vuln-code-snippet end.*/g, '')
   snippet = snippet.replace(/.*[/#]{0,2} vuln-code-snippet hide-line[\r\n]{0,2}/g, '')
