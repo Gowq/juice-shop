@@ -70,6 +70,10 @@ export const getVerdict = (vulnLines: number[], neutralLines: number[], selected
 
 export const checkVulnLines = () => async (req: Request<Record<string, unknown>, Record<string, unknown>, VerdictRequestBody>, res: Response, next: NextFunction) => {
   const key = req.body.key
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+    res.status(400).json({ status: 'error', error: 'Invalid challenge key' })
+    return
+  }
   let snippetData
   try {
     snippetData = await retrieveCodeSnippet(key)
