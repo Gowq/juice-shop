@@ -4,6 +4,7 @@
  */
 
 import fs from 'node:fs'
+import { basename, resolve, sep } from 'node:path'
 import config from 'config'
 import { type Request, type Response } from 'express'
 import { AllHtmlEntities as Entities } from 'html-entities'
@@ -84,9 +85,13 @@ function getSubsFromFile () {
 }
 
 function videoPath () {
+  const videosDir = resolve('frontend/dist/frontend/assets/public/videos')
   if (config.get<string>('application.promotion.video') !== null) {
-    const video = utils.extractFilename(config.get<string>('application.promotion.video'))
-    return 'frontend/dist/frontend/assets/public/videos/' + video
+    // extractFilename URL-decodes its result, so encoded separators must be stripped afterwards
+    const video = resolve(videosDir, basename(utils.extractFilename(config.get<string>('application.promotion.video'))))
+    if (video.startsWith(videosDir + sep)) {
+      return video
+    }
   }
-  return 'frontend/dist/frontend/assets/public/videos/owasp_promo.mp4'
+  return resolve(videosDir, 'owasp_promo.mp4')
 }
