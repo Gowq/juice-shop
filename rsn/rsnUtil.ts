@@ -136,6 +136,7 @@ function resolveFixPath (fileName: string): string | null {
 }
 
 function loadChallengeInfo (challengeName: string): ChallengeInfo | null {
+  if (!/^[a-zA-Z0-9_-]+$/.test(challengeName)) return null
   const infoPath = resolveFixPath(`${challengeName}.info.yml`)
   if (!infoPath || !fs.existsSync(infoPath)) return null
   const content = fs.readFileSync(infoPath, 'utf-8')
