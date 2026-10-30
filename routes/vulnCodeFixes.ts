@@ -70,6 +70,10 @@ export const serveCodeFixes = () => (req: Request<FixesRequestParams, Record<str
 
 export const checkCorrectFix = () => async (req: Request<Record<string, unknown>, Record<string, unknown>, VerdictRequestBody>, res: Response, next: NextFunction) => {
   const key = req.body.key
+  if (typeof key !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(key)) {
+    res.status(400).json({ error: 'Invalid challenge key' })
+    return
+  }
   const selectedFix = req.body.selectedFix
   const fixData = readFixes(key)
   if (fixData.fixes.length === 0) {
@@ -78,7 +82,7 @@ export const checkCorrectFix = () => async (req: Request<Record<string, unknown>
     })
   } else {
     let explanation
-    const infoFile = './data/static/codefixes/' + path.basename(String(key)) + '.info.yml'
+    const infoFile = path.join(FixesDir, key + '.info.yml')
     if (fs.existsSync(infoFile)) {
       const codingChallengeInfos = yaml.load(fs.readFileSync(infoFile, 'utf8'))
       const selectedFixInfo = codingChallengeInfos?.fixes.find(({ id }: { id: number }) => id === selectedFix + 1)
